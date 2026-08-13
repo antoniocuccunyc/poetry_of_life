@@ -72,18 +72,13 @@ impl Universe {
         self.cells = next;
     }
 
-    fn render(&self) -> String {
-        let mut out = String::new();
+    fn render(&mut self) -> String {
+        let mut out = String::with_capacity(self.width * (self.height + 1));
 
         for row in 0..self.height {
             for column in 0..self.width {
                 let idx = self.get_index(row, column);
-                let symbol = if self.cells[idx] == Cell::Alive {
-                    '◼'
-                } else {
-                    '◻'
-                };
-                out.push(symbol);
+                out.push(glyph(self.patch_byte(row, column)));
             }
             out.push('\n');
         }
@@ -126,12 +121,20 @@ impl Universe {
     }
 }
 fn main() {
-    let mut universe = Universe::new(32, 16);
-    print!("{}", universe.render());
-    for generation in 0..5 {
-        println!("Generation {}:", generation);
+    let mut universe = Universe::new(GRID_WIDTH, GRID_HEIGHT);
+
+    for checkpoint in 0..4 {
+        println!("─── generation {} ───", checkpoint * 60);
         print!("{}", universe.render());
         println!();
-        universe.tick();
+
+        for _ in 0..60 {
+            universe.tick();
+        }
     }
+}
+
+fn glyph(byte: u8) -> char {
+    // Widen before multiplying, narrow after dividing.
+    (32 + (byte as u16 * 95 / 256) as u8) as char
 }
