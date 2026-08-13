@@ -55,6 +55,25 @@ impl Universe {
         count
     }
 
+    fn tick(&mut self) {
+        let mut next = self.cells.clone();
+        for row in 0..self.height {
+            for col in 0..self.width {
+                let idx = self.get_index(row, col);
+                let cell = self.cells[idx];
+                let live_neighbors = self.live_neighbor_count(row, col);
+                next[idx] = match (cell, live_neighbors) {
+                    (Cell::Alive, n) if n < 2 => Cell::Dead,
+                    (Cell::Alive, 2) | (Cell::Alive, 3) => Cell::Alive,
+                    (Cell::Alive, n) if n > 3 => Cell::Dead,
+                    (Cell::Dead, 3) => Cell::Alive,
+                    (otherwise, _) => otherwise,
+                };
+            }
+        }
+        self.cells = next;
+    }
+
     fn render(&self) -> String {
         let mut out = String::new();
 
