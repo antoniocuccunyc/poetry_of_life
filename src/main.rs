@@ -1,3 +1,12 @@
+const WALL_WIDTH: usize = 20;
+const WALL_HEIGHT: usize = 20;
+
+const PATCH_WIDTH: usize = 4;
+const PATCH_HEIGHT: usize = 2;
+
+const GRID_WIDTH: usize = WALL_WIDTH * PATCH_WIDTH;    // 80
+const GRID_HEIGHT: usize = WALL_HEIGHT * PATCH_HEIGHT; // 40
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Cell {
     Dead,
@@ -12,21 +21,10 @@ struct Universe {
 
 impl Universe {
     fn new(width: usize, height: usize) -> Universe {
-        let cells = (0..width * height)
-            .map(|i| {
-                if i % 2 == 0 || i % 7 == 0 {
-                    Cell::Alive
-                } else {
-                    Cell::Dead
-                }
-            })
-            .collect();
-
-        Universe {
-            width,
-            height,
-            cells,
-        }
+        let cells = vec![Cell::Dead; width * height];
+        let mut universe = Universe { width, height, cells };
+        universe.seed_r_pentomino();
+        universe
     }
 
     fn get_index(&self, row: usize, column: usize) -> usize {
@@ -92,8 +90,48 @@ impl Universe {
 
         out
     }
+    fn set_alive(&mut self, coords: &[(usize, usize)]) {
+        for &(row, col) in coords {
+            let idx = self.get_index(row, col);
+            self.cells[idx] = Cell::Alive;
+        }
+    }
+
+    fn patch_byte(&mut self, wall_row: usize, wall_col:usize) -> u8 {
+        let top = wall_row * PATCH_HEIGHT;
+        let left = wall_col * PATCH_WIDTH;
+        let mut byte = 0u8;
+        for row in 0..PATCH_HEIGHT {
+            for col in 0..PATCH_WIDTH {
+                let idx = self.get_index((top + row) % self.height, (left + col) % self.width);
+                byte <<= 1;
+                if self.cells[idx] == Cell::Alive {
+                    byte |= 1;
+                }
+            }
+        }
+        byte
+    }
+
+    fn seed_r_pentomino(&mut self) {
+        let r = self.height / 2;
+        let c = self.width / 2;
+        self.set_alive(&[
+            (r, c + 1),
+            (r, c + 2),
+            (r + 1, c),
+            (r + 1, c + 1),
+            (r + 2, c + 1),
+        ])
+    }
 }
 fn main() {
-    let universe = Universe::new(32, 16);
+    let mut universe = Universe::new(32, 16);
     print!("{}", universe.render());
+    for generation in 0..5 {
+        println!("Generation {}:", generation);
+        print!("{}", universe.render());
+        println!();
+        universe.tick();
+    }
 }
