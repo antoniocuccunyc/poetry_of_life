@@ -20,7 +20,6 @@ impl Universe {
     pub fn new(width: usize, height: usize) -> Universe {
         let cells = vec![Cell::Dead; width * height];
         let mut universe = Universe { width, height, cells };
-        universe.seed_r_pentomino();
         universe
     }
 
@@ -107,11 +106,11 @@ impl Universe {
         self.cells = next;
     }
 
-    pub fn render(&mut self) -> String {
+    pub fn render_wall(&self) -> String {
         let mut out = String::with_capacity(self.width * (self.height + 1));
 
-        for row in 0..self.height {
-            for column in 0..self.width {
+        for row in 0..WALL_HEIGHT{
+            for column in 0..WALL_WIDTH {
                 out.push(glyph(self.patch_byte(row, column)));
             }
             out.push('\n');
@@ -127,7 +126,7 @@ impl Universe {
         }
     }
 
-    fn patch_byte(&mut self, wall_row: usize, wall_col: usize) -> u8 {
+    fn patch_byte(&self, wall_row: usize, wall_col: usize) -> u8 {
         let top = wall_row * PATCH_HEIGHT;
         let left = wall_col * PATCH_WIDTH;
         let mut byte = 0u8;
@@ -155,7 +154,7 @@ impl Universe {
         ])
     }
 
-    pub fn wall_values(&mut self) -> Vec<u8> {
+    pub fn wall_values(&self) -> Vec<u8> {
         let mut values = Vec::with_capacity(WALL_WIDTH * WALL_HEIGHT);
         for row in 0..WALL_HEIGHT {
             for col in 0..WALL_WIDTH {
