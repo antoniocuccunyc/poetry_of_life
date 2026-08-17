@@ -19,7 +19,7 @@ pub struct Universe {
 impl Universe {
     pub fn new(width: usize, height: usize) -> Universe {
         let cells = vec![Cell::Dead; width * height];
-        let mut universe = Universe { width, height, cells };
+        let universe = Universe { width, height, cells };
         universe
     }
 
@@ -107,7 +107,7 @@ impl Universe {
     }
 
     pub fn render_wall(&self) -> String {
-        let mut out = String::with_capacity(self.width * (self.height + 1));
+        let mut out = String::with_capacity(WALL_WIDTH * (WALL_HEIGHT + 1));
 
         for row in 0..WALL_HEIGHT{
             for column in 0..WALL_WIDTH {

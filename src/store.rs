@@ -61,15 +61,20 @@ impl ChunkStore {
 
 }
 
-fn compose_line(islands: &[Island], store: &ChunkStore) -> String {
+pub fn compose_line(islands: &[Island], store: &ChunkStore) -> String {
+    let mut ranked: Vec<&Island> = islands.iter().collect();
+    ranked.sort_by(|a, b| b.size().cmp(&a.size()));
+
     let mut chunks = Vec::new();
 
-    for island in islands.iter().take(2) {
+    for island in ranked.iter().take(2) {
         let chunk = store.pick(islands.len(), island.sum);
+
         if !chunk.is_empty() {
             chunks.push(chunk);
         }
     }
+    eprintln!();
 
     chunks.join(" ")
 }
