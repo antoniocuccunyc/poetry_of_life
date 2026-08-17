@@ -1,5 +1,5 @@
 use std::fs;
-
+const STRIDE: usize = 7;
 struct ChunkStore {
     one: Vec<&'static str>,
     two: Vec<&'static str>,
@@ -38,6 +38,21 @@ impl ChunkStore {
             2 => &self.two,
             _ => &self.three,
         }
+    }
+
+    fn pick(&self, island_count: usize, sum: usize) -> &'static str {
+        let words = match island_count {
+            0..=2 => 3,
+            3..=5 => 2,
+            _ => 1,
+        };
+
+        let bucket = self.bucket(words);
+        if bucket.is_empty() {
+            return "";
+        }
+
+        bucket[(sum * STRIDE) % bucket.len()]
     }
 
 
