@@ -1,3 +1,13 @@
+mod glyph;
+mod island;
+mod universe;
+mod store;
+
+use rand::prelude::StdRng;
+use rand::SeedableRng;
+use island::find_islands;
+use universe::Universe;
+
 const WALL_WIDTH: usize = 20;
 const WALL_HEIGHT: usize = 20;
 
@@ -7,134 +17,58 @@ const PATCH_HEIGHT: usize = 2;
 const GRID_WIDTH: usize = WALL_WIDTH * PATCH_WIDTH;    // 80
 const GRID_HEIGHT: usize = WALL_HEIGHT * PATCH_HEIGHT; // 40
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Cell {
-    Dead,
-    Alive,
-}
-
-struct Universe {
-    width: usize,
-    height: usize,
-    cells: Vec<Cell>,
-}
-
-impl Universe {
-    fn new(width: usize, height: usize) -> Universe {
-        let cells = vec![Cell::Dead; width * height];
-        let mut universe = Universe { width, height, cells };
-        universe.seed_r_pentomino();
-        universe
-    }
-
-    fn get_index(&self, row: usize, column: usize) -> usize {
-        row * self.width + column
-    }
-
-    fn live_neighbor_count(&self, row: usize, column: usize) -> u8 {
-        let mut count = 0;
-        for delta_row in [self.height - 1, 0, 1] {
-            for delta_col in [self.width - 1, 0, 1] {
-                if delta_row == 0 && delta_col == 0 {
-                    continue;
-                }
-
-                let neighbor_row = (row + delta_row) % self.height;
-                let neighbor_col = (column + delta_col) % self.width;
-                let idx = self.get_index(neighbor_row, neighbor_col);
-
-                count += match self.cells[idx] {
-                    Cell::Alive => 1,
-                    Cell::Dead => 0,
-                };
-            }
-        }
-
-        count
-    }
-
-    fn tick(&mut self) {
-        let mut next = self.cells.clone();
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let idx = self.get_index(row, col);
-                let cell = self.cells[idx];
-                let live_neighbors = self.live_neighbor_count(row, col);
-                next[idx] = match (cell, live_neighbors) {
-                    (Cell::Alive, n) if n < 2 => Cell::Dead,
-                    (Cell::Alive, 2) | (Cell::Alive, 3) => Cell::Alive,
-                    (Cell::Alive, n) if n > 3 => Cell::Dead,
-                    (Cell::Dead, 3) => Cell::Alive,
-                    (otherwise, _) => otherwise,
-                };
-            }
-        }
-        self.cells = next;
-    }
-
-    fn render(&mut self) -> String {
-        let mut out = String::with_capacity(self.width * (self.height + 1));
-
-        for row in 0..self.height {
-            for column in 0..self.width {
-                let idx = self.get_index(row, column);
-                out.push(glyph(self.patch_byte(row, column)));
-            }
-            out.push('\n');
-        }
-
-        out
-    }
-    fn set_alive(&mut self, coords: &[(usize, usize)]) {
-        for &(row, col) in coords {
-            let idx = self.get_index(row, col);
-            self.cells[idx] = Cell::Alive;
-        }
-    }
-
-    fn patch_byte(&mut self, wall_row: usize, wall_col:usize) -> u8 {
-        let top = wall_row * PATCH_HEIGHT;
-        let left = wall_col * PATCH_WIDTH;
-        let mut byte = 0u8;
-        for row in 0..PATCH_HEIGHT {
-            for col in 0..PATCH_WIDTH {
-                let idx = self.get_index((top + row) % self.height, (left + col) % self.width);
-                byte <<= 1;
-                if self.cells[idx] == Cell::Alive {
-                    byte |= 1;
-                }
-            }
-        }
-        byte
-    }
-
-    fn seed_r_pentomino(&mut self) {
-        let r = self.height / 2;
-        let c = self.width / 2;
-        self.set_alive(&[
-            (r, c + 1),
-            (r, c + 2),
-            (r + 1, c),
-            (r + 1, c + 1),
-            (r + 2, c + 1),
-        ])
-    }
-}
 fn main() {
-    let mut universe = Universe::new(GRID_WIDTH, GRID_HEIGHT);
+    for seed in [1u64, 7, 42, 1337, 99999] {
+        let mut rng = StdRng::seed_from_u64(seed);
+        let mut universe = Universe::new(GRID_WIDTH, GRID_HEIGHT);
+        universe.seed_blob(&mut rng, 20, 0.4);
 
-    for checkpoint in 0..4 {
-        println!("─── generation {} ───", checkpoint * 60);
-        print!("{}", universe.render());
-        println!();
+        println!("═══ seed {} ═══", seed);
 
-        for _ in 0..60 {
+        let mut sizes = Vec::new();
+        let mut means = Vec::new();
+        let mut splits = 0;
+        let mut previous_size = 0;
+
+        for generation in 0..80 {
             universe.tick();
-        }
-    }
-}
 
-fn glyph(byte: u8) -> char {
-    // Widen before multiplying, narrow after dividing.
-    (32 + (byte as u16 * 95 / 256) as u8) as char
+            let values = universe.wall_values();
+            let mut islands = find_islands(&values);
+            islands.sort_by(|a, b| b.size().cmp(&a.size()));
+
+            if let Some(big) = islands.first() {
+                let size = big.size();
+                let mean = big.sum / size;
+
+                // A sharp drop in the largest island usually means it split.
+                if previous_size > 0 && size * 2 < previous_size {
+                    splits += 1;
+                }
+                previous_size = size;
+
+                sizes.push(size);
+                means.push(mean);
+
+                if generation % 10 == 0 {
+                    println!(
+                        "  gen {:>3}  islands {:>2}  size {:>3}  sum {:>5}  mean {:>3}",
+                        generation,
+                        islands.len(),
+                        size,
+                        big.sum,
+                        mean
+                    );
+                }
+            }
+        }
+
+        println!(
+            "  → size peak {}, mean range {}–{}, sharp drops {}\n",
+            sizes.iter().max().unwrap_or(&0),
+            means.iter().min().unwrap_or(&0),
+            means.iter().max().unwrap_or(&0),
+            splits
+        );
+    }
 }
