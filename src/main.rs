@@ -16,10 +16,8 @@ use std::time::Duration;
 
 const WALL_WIDTH: usize = 20;
 const WALL_HEIGHT: usize = 20;
-
-const PATCH_WIDTH: usize = 4;
-const PATCH_HEIGHT: usize = 2;
-
+const PATCH_WIDTH: usize = 6;
+const PATCH_HEIGHT: usize = 4;
 const GRID_WIDTH: usize = WALL_WIDTH * PATCH_WIDTH; // 80
 const GRID_HEIGHT: usize = WALL_HEIGHT * PATCH_HEIGHT; // 40
 
@@ -42,7 +40,7 @@ fn main() {
 
     let mut rng = StdRng::seed_from_u64(SEED);
     let mut universe = Universe::new(GRID_WIDTH, GRID_HEIGHT);
-    universe.seed_blob(&mut rng, 20, 0.4);
+    universe.seed_blob(&mut rng, 60, 0.4);
 
     let mut previous_line = String::new();
     let mut repeats = 0;

@@ -111,7 +111,7 @@ impl Universe {
 
         for row in 0..WALL_HEIGHT{
             for column in 0..WALL_WIDTH {
-                out.push(glyph(self.patch_byte(row, column)));
+                out.push(glyph(self.patch_bits(row, column), row, column));
             }
             out.push('\n');
         }
@@ -126,20 +126,20 @@ impl Universe {
         }
     }
 
-    fn patch_byte(&self, wall_row: usize, wall_col: usize) -> u8 {
+    fn patch_bits(&self, wall_row: usize, wall_col: usize) -> u32 {
         let top = wall_row * PATCH_HEIGHT;
         let left = wall_col * PATCH_WIDTH;
-        let mut byte = 0u8;
+        let mut bits = 0u32;
         for row in 0..PATCH_HEIGHT {
             for col in 0..PATCH_WIDTH {
                 let idx = self.get_index((top + row) % self.height, (left + col) % self.width);
-                byte <<= 1;
+                bits <<= 1;
                 if self.cells[idx] == Cell::Alive {
-                    byte |= 1;
+                    bits |= 1;
                 }
             }
         }
-        byte
+        bits
     }
 
     fn seed_r_pentomino(&mut self) {
@@ -154,11 +154,11 @@ impl Universe {
         ])
     }
 
-    pub fn wall_values(&self) -> Vec<u8> {
+    pub fn wall_values(&self) -> Vec<u32> {
         let mut values = Vec::with_capacity(WALL_WIDTH * WALL_HEIGHT);
         for row in 0..WALL_HEIGHT {
             for col in 0..WALL_WIDTH {
-                values.push(glyph(self.patch_byte(row, col)) as u8 - 32);
+                values.push(self.patch_bits(row, col));
             }
         }
         values

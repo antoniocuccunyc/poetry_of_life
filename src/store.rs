@@ -1,5 +1,5 @@
 use std::fs;
-const STRIDE: usize = 7;
+const DIVISOR: usize = 100_000;
 use crate::island::Island;
 pub struct ChunkStore {
     one: Vec<&'static str>,
@@ -45,7 +45,7 @@ impl ChunkStore {
             return "";
         }
 
-        bucket[(sum * STRIDE) % bucket.len()]
+        bucket[(sum / DIVISOR) % bucket.len()]
     }
 
     fn bucket(&self, n: usize) -> &[&'static str] {
@@ -74,7 +74,6 @@ pub fn compose_line(islands: &[Island], store: &ChunkStore) -> String {
             chunks.push(chunk);
         }
     }
-    eprintln!();
 
     chunks.join(" ")
 }

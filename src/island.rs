@@ -21,7 +21,7 @@ impl Island {
 
 /// Flood-fills the wall-glyph grid (toroidal, 4-neighbour) into connected
 /// islands of non-zero values.
-pub fn find_islands(values: &[u8]) -> Vec<Island> {
+pub fn find_islands(values: &[u32]) -> Vec<Island> {
     let mut labelled = vec![false; values.len()];
     let mut islands = Vec::new();
     for start in 0..values.len() {
